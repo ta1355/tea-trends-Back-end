@@ -5,26 +5,33 @@ import { AuthService } from 'src/auth/service/auth.service';
 import { LoginUserDto } from 'src/auth/dto/login-user.dto';
 import { User } from 'src/auth/entity/user.entity';
 
+type SafeUser = Omit<
+  User,
+  | 'userPassword'
+  | 'hashPassword'
+  | 'validatePassword'
+  | 'softDelete'
+  | 'isDeleted'
+  | 'isActive'
+>;
+
 @Injectable()
-export class LocalStrategy extends PassportStrategy(Strategy) {
+export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   constructor(private authService: AuthService) {
+    //임시
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super({
       usernameField: 'userEmail',
       passwordField: 'userPassword',
-    } as IStrategyOptions);
+    });
   }
 
-  async validate(
-    userEmail: string,
-    userPassword: string,
-  ): Promise<Omit<User, 'userPassword'>> {
+  async validate(userEmail: string, userPassword: string): Promise<SafeUser> {
     const loginUserDto: LoginUserDto = { userEmail, userPassword };
     const user = await this.authService.validateUser(loginUserDto);
     if (!user) {
       throw new UnauthorizedException();
     }
-    // 비밀번호 필드를 제외한 사용자 정보를 반환
-    const { userPassword: _, ...result } = user;
-    return result;
+    return user;
   }
 }

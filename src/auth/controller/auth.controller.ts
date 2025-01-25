@@ -8,13 +8,14 @@ interface JwtPayload {
   indexId: number;
   userEmail: string;
 }
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Request() req: { user: Omit<User, 'userPassword'> }) {
+  login(@Request() req: { user: Omit<User, 'userPassword'> }) {
     return this.authService.login(req.user);
   }
 
