@@ -1,9 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entity/user.entity';
 import { LoginUserDto } from '../dto/login-user.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
 
 // User에서 비밀번호와 메서드를 제외한 타입 정의
 type SafeUser = Omit<
@@ -24,6 +29,27 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  async signUp(createUserDto: CreateUserDto): Promise<User> {
+    const { username, userPassword, userEmail, role } = createUserDto;
+
+    const existingUser = await this.usersRepository.findOne({
+      where: { userEmail },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email is already in use.');
+    }
+
+    const user = this.usersRepository.create({
+      username,
+      userPassword,
+      userEmail,
+      role,
+    });
+
+    return await this.usersRepository.save(user);
+  }
+
   async validateUser(loginUserDto: LoginUserDto): Promise<SafeUser> {
     const { userEmail, userPassword } = loginUserDto;
     const user = await this.usersRepository.findOne({ where: { userEmail } });
@@ -35,7 +61,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 안전한 사용자 객체 생성
     const safeUser: SafeUser = {
       indexId: user.indexId,
       username: user.username,

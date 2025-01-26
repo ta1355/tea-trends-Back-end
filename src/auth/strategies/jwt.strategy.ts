@@ -1,27 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { JwtSecretService } from '../jwt/jwt-secret.service';
-import { StrategyOptions } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+
 interface JwtPayload {
-  sub: number;
-  userEmail: string;
+  indexId: number;
+  useremail: string;
 }
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private jwtSecretService: JwtSecretService) {
-    const options: StrategyOptions = {
+  constructor(private readonly configService: ConfigService) {
+    super({
+      // Bearer Token에서 JWT 추출
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // 만료된 토큰 거부
       ignoreExpiration: false,
-      secretOrKey: jwtSecretService.getSecretKey(),
-    };
-    super(options);
+      // 환경 변수에서 secret을 가져오되, 없으면 기본값 사용
+      secretOrKey: configService.get<string>('JWT_SECRET') || 'defaultSecret',
+    });
   }
 
-  async validate(
-    payload: JwtPayload,
-  ): Promise<{ userId: number; userEmail: string }> {
-    return { userId: payload.sub, userEmail: payload.userEmail };
+  validate(payload: JwtPayload): JwtPayload {
+    return payload;
   }
 }

@@ -1,26 +1,26 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppService } from './app.service';
 import { User } from './auth/entity/user.entity';
-import { JwtSecretService } from './auth/jwt/jwt-secret.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // 전역 모듈로 설정
+      isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: configService.get<string>('DB_TYPE', 'mysql') as 'mysql',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: configService.get<number>('DB_PORT', 3306),
-        username: configService.get<string>('DB_USERNAME', 'root'),
-        password: configService.get<string>('DB_PASSWORD', 'rootmysql'),
-        database: configService.get<string>('DB_DATABASE', 'tea'),
+      useFactory: (configService: ConfigService): TypeOrmModuleOptions => ({
+        type: configService.get('DB_TYPE') as 'mysql',
+        host: configService.get('DB_HOST') as string,
+        port: +configService.get('DB_PORT')!,
+        username: configService.get('DB_USERNAME') as string,
+        password: configService.get('DB_PASSWORD') as string,
+        database: configService.get('DB_DATABASE') as string,
         entities: [User],
         synchronize: true,
       }),
@@ -29,6 +29,6 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService, JwtSecretService],
+  providers: [AppService],
 })
 export class AppModule {}

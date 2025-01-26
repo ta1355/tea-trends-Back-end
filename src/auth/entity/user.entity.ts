@@ -37,7 +37,7 @@ export class User {
   deletedDateTime: Date | null;
 
   @BeforeInsert()
-  async hashPassword() {
+  async hashPassword(): Promise<void> {
     if (this.userPassword) {
       this.userPassword = await bcrypt.hash(this.userPassword, 10); // 비밀번호 해싱
     }
