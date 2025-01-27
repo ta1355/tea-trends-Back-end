@@ -1,27 +1,42 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtSecretService } from '../jwt/jwt-secret.service';
 
 interface JwtPayload {
   indexId: number;
-  useremail: string;
+  userEmail: string;
 }
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly configService: ConfigService) {
+  private readonly logger = new Logger(JwtStrategy.name);
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly jwtSecretService: JwtSecretService,
+  ) {
     super({
-      // Bearer Token에서 JWT 추출
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      // 만료된 토큰 거부
       ignoreExpiration: false,
-      // 환경 변수에서 secret을 가져오되, 없으면 기본값 사용
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'defaultSecret',
+      secretOrKey: jwtSecretService.getHashedSecret(),
     });
   }
 
-  validate(payload: JwtPayload): JwtPayload {
-    return payload;
+  validate(payload: JwtPayload): JwtPayload | undefined {
+    try {
+      if (!payload.indexId || !payload.userEmail) {
+        throw new UnauthorizedException('Invalid token payload');
+      }
+      return payload;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.logger.error(`JWT 토큰 인증 실패 : ${error.message}`);
+      } else {
+        this.logger.error('JWT 토큰 인증 실패 : 알 수 없는 오류 ');
+      }
+      throw error;
+    }
   }
 }

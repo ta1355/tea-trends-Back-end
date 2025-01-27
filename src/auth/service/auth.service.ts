@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -9,8 +10,8 @@ import { Repository } from 'typeorm';
 import { User } from '../entity/user.entity';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { JwtSecretService } from '../jwt/jwt-secret.service';
 
-// User에서 비밀번호와 메서드를 제외한 타입 정의
 type SafeUser = Omit<
   User,
   | 'userPassword'
@@ -21,61 +22,88 @@ type SafeUser = Omit<
   | 'isActive'
 >;
 
+interface UserPayload {
+  userEmail: string;
+  indexId: number;
+}
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private jwtService: JwtService,
+    private jwtSecretService: JwtSecretService,
   ) {}
 
   async signUp(createUserDto: CreateUserDto): Promise<User> {
-    const { username, userPassword, userEmail, role } = createUserDto;
+    const { userName, userPassword, userEmail, role } = createUserDto;
+    try {
+      const existingUser = await this.usersRepository.findOne({
+        where: { userEmail },
+      });
 
-    const existingUser = await this.usersRepository.findOne({
-      where: { userEmail },
-    });
+      if (existingUser) {
+        throw new ConflictException('Email is already in use.');
+      }
 
-    if (existingUser) {
-      throw new ConflictException('Email is already in use.');
+      const user = this.usersRepository.create({
+        userName,
+        userPassword,
+        userEmail,
+        role,
+      });
+
+      return await this.usersRepository.save(user);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.logger.error(`회원가입 실패 : ${error.message}`);
+      } else {
+        this.logger.error('회원가입 실패 알 수 없는 오류입니다.');
+      }
+      throw new Error('회원가입을 실패했습니다.');
     }
-
-    const user = this.usersRepository.create({
-      username,
-      userPassword,
-      userEmail,
-      role,
-    });
-
-    return await this.usersRepository.save(user);
   }
 
   async validateUser(loginUserDto: LoginUserDto): Promise<SafeUser> {
     const { userEmail, userPassword } = loginUserDto;
-    const user = await this.usersRepository.findOne({ where: { userEmail } });
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    const isPasswordValid = await user.validatePassword(userPassword);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    try {
+      const user = await this.usersRepository.findOne({ where: { userEmail } });
+      if (!user) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+      const isPasswordValid = await user.validatePassword(userPassword);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
-    const safeUser: SafeUser = {
-      indexId: user.indexId,
-      username: user.username,
-      userEmail: user.userEmail,
-      role: user.role,
-      createDateTime: user.createDateTime,
-      deletedDateTime: user.deletedDateTime,
-    };
-    return safeUser;
+      const safeUser: SafeUser = {
+        indexId: user.indexId,
+        userName: user.userName,
+        userEmail: user.userEmail,
+        role: user.role,
+        createDateTime: user.createDateTime,
+        deletedDateTime: user.deletedDateTime,
+      };
+      return safeUser;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.logger.error(`유저인증 실패: ${error.message}`);
+      } else {
+        this.logger.error('유저인증 실패: 알 수 없는 오류');
+      }
+      throw new Error('Faild to validate user');
+    }
   }
 
-  login(user: SafeUser): { access_token: string } {
+  login(user: UserPayload) {
     const payload = { userEmail: user.userEmail, sub: user.indexId };
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.jwtService.sign(payload, {
+        secret: this.jwtSecretService.getHashedSecret(),
+      }),
     };
   }
 }

@@ -6,17 +6,15 @@ import * as crypto from 'crypto';
 export class JwtSecretService {
   constructor(private configService: ConfigService) {}
 
-  generateSecretKey(): string {
-    const randomBytes = crypto.randomBytes(32);
-    return randomBytes.toString('base64');
+  private hashSecret(secret: string): string {
+    return crypto.createHash('sha256').update(secret).digest('hex');
   }
 
-  getSecretKey(): string {
-    let secretKey = this.configService.get<string>('JWT_SECRET');
-    if (!secretKey) {
-      secretKey = this.generateSecretKey();
-      console.log(`생성된 비밀키 : ${secretKey}`); //이거 태스트용도 배포시에는 꼭 지워야함 안지우면 망함
+  getHashedSecret(): string {
+    const secret = this.configService.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET is not defined in the environment variables');
     }
-    return secretKey;
+    return this.hashSecret(secret);
   }
 }

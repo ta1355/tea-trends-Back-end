@@ -8,9 +8,9 @@ import {
 } from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
-import { User } from '../entity/user.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { LoginUserDto } from '../dto/login-user.dto';
 
 interface JwtPayload {
   indexId: number;
@@ -28,7 +28,7 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  login(@Request() req: { user: Omit<User, 'userPassword'> }) {
+  login(@Body() loginUserDto: LoginUserDto, @Request() req) {
     return this.authService.login(req.user);
   }
 
