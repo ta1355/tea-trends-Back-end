@@ -4,8 +4,10 @@ import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { IsNotEmpty, IsEmail, Length } from 'class-validator';
+import { Post } from 'src/post/entity/post.entity';
 
 @Entity('user')
 export class User {
@@ -33,6 +35,9 @@ export class User {
 
   @DeleteDateColumn({ nullable: true })
   deletedDateTime: Date | null;
+
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
 
   softDelete() {
     this.deletedDateTime = new Date();

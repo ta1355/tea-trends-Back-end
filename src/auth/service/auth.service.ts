@@ -92,6 +92,7 @@ export class AuthService {
         role: user.role,
         createDateTime: user.createDateTime,
         deletedDateTime: user.deletedDateTime,
+        posts: user.posts,
       };
       return safeUser;
     } catch (error: unknown) {
