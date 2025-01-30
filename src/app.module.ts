@@ -6,6 +6,7 @@ import { User } from './auth/entity/user.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { JwtSecretModule } from './auth/jwt/jwt-secret.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AuthModule } from './auth/auth.module';
       inject: [ConfigService],
     }),
     AuthModule,
+    JwtSecretModule,
   ],
   controllers: [AppController],
   providers: [AppService],
