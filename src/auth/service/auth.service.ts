@@ -11,6 +11,7 @@ import { User } from '../entity/user.entity';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { JwtSecretService } from '../jwt/jwt-secret.service';
+import * as bcrypt from 'bcryptjs';
 
 type SafeUser = Omit<
   User,
@@ -49,9 +50,11 @@ export class AuthService {
         throw new ConflictException('Email is already in use.');
       }
 
+      const hashedPassword = await bcrypt.hash(userPassword, 10);
+
       const user = this.usersRepository.create({
         userName,
-        userPassword,
+        userPassword: hashedPassword,
         userEmail,
         role,
       });
@@ -74,7 +77,10 @@ export class AuthService {
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
-      const isPasswordValid = await user.validatePassword(userPassword);
+      const isPasswordValid = await bcrypt.compare(
+        userPassword,
+        user.userPassword,
+      );
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid credentials');
       }

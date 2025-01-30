@@ -4,10 +4,8 @@ import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
-  BeforeInsert,
 } from 'typeorm';
 import { IsNotEmpty, IsEmail, Length } from 'class-validator';
-import * as bcrypt from 'bcryptjs'; // bcrypt를 사용하여 비밀번호 암호화
 
 @Entity('user')
 export class User {
@@ -35,17 +33,6 @@ export class User {
 
   @DeleteDateColumn({ nullable: true })
   deletedDateTime: Date | null;
-
-  @BeforeInsert()
-  async hashPassword(): Promise<void> {
-    if (this.userPassword) {
-      this.userPassword = await bcrypt.hash(this.userPassword, 10); // 비밀번호 해싱
-    }
-  }
-
-  async validatePassword(password: string): Promise<boolean> {
-    return bcrypt.compare(password, this.userPassword); // 비밀번호 비교
-  }
 
   softDelete() {
     this.deletedDateTime = new Date();
