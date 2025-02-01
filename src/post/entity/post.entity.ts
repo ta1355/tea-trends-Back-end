@@ -85,4 +85,8 @@ export class Post {
       this.likeCount -= 1;
     }
   }
+
+  isDeleted(): boolean {
+    return this.deletedDateTime !== null;
+  }
 }

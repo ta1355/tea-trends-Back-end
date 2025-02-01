@@ -8,9 +8,11 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { JwtSecretModule } from './auth/jwt/jwt-secret.module';
 import { Post } from './post/entity/post.entity';
+import { PostModule } from './post/post.module';
 
 @Module({
   imports: [
+    PostModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -19,7 +21,7 @@ import { Post } from './post/entity/post.entity';
       useFactory: (configService: ConfigService): TypeOrmModuleOptions => ({
         type: configService.get('DB_TYPE') as 'mysql',
         host: configService.get('DB_HOST') as string,
-        port: +configService.get('DB_PORT')!,
+        port: +configService.get('DB_PORT')!, //+는 문자열을 숫자열로
         username: configService.get('DB_USERNAME') as string,
         password: configService.get('DB_PASSWORD') as string,
         database: configService.get('DB_DATABASE') as string,
